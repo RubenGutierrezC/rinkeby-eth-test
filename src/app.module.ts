@@ -3,8 +3,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { EthersModule, RINKEBY_NETWORK } from 'nestjs-ethers';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Transactions, TransactionsSchema } from './app.schema';
+import { Transaction, TransactionSchema } from './transaction.schema';
 import { ConfigModule } from '@nestjs/config';
+import { Block, BlockSchema } from './block.schema';
 
 @Module({
   imports: [
@@ -16,8 +17,9 @@ import { ConfigModule } from '@nestjs/config';
     }),
     MongooseModule.forRoot(process.env.MONGO_URL),
     MongooseModule.forFeature([
-      { name: Transactions.name, schema: TransactionsSchema },
+      { name: Transaction.name, schema: TransactionSchema },
     ]),
+    MongooseModule.forFeature([{ name: Block.name, schema: BlockSchema }]),
   ],
   controllers: [AppController],
   providers: [AppService],

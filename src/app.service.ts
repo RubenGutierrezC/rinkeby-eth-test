@@ -2,53 +2,57 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BaseProvider, InjectEthersProvider } from 'nestjs-ethers';
-import { Transactions, TransactionsDocument } from './app.schema';
+import { Block, BlockDocument } from './block.schema';
+import { Transaction, TransactionDocument } from './transaction.schema';
 
 @Injectable()
 export class AppService {
   constructor(
     @InjectEthersProvider()
     private readonly ethersProvider: BaseProvider,
-    @InjectModel(Transactions.name)
-    private transactionsModels: Model<TransactionsDocument>,
+
+    @InjectModel(Block.name)
+    private blockModel: Model<BlockDocument>,
+
+    @InjectModel(Transaction.name)
+    private transactionModel: Model<TransactionDocument>,
   ) {}
 
-  async getTransactions({ hash, blockNumber, from, to }: any): Promise<any> {
-    let result;
+  async getTransactions({
+    hash,
+    blockNumber,
+    from,
+    to,
+  }: any): Promise<Transaction[]> {
+    const filters: any = {};
 
-    if (hash) {
-      result = await this.ethersProvider.getTransaction(hash);
-    }
+    if (hash) filters.hash = hash;
+    if (blockNumber) filters.blockNumber = blockNumber;
+    if (from) filters.from = from;
+    if (to) filters.to = to;
 
-    if (blockNumber) {
-      result = await this.ethersProvider.getBlockWithTransactions(
-        parseInt(blockNumber),
-      );
-      result = result.transactions;
-    }
+    const transactions = await this.transactionModel.find(filters);
 
-    if (from) {
-      result = await this.ethersProvider.getLogs(hash);
-    }
-
-    if (to) {
-      result = await this.ethersProvider.getLogs(to);
-    }
-
-    return result;
+    return transactions;
   }
 
   suscribe(): any {
-    console.log('suscribed');
     this.ethersProvider.on('block', async (b) => {
       console.log('transaction', b);
       try {
-        const result = await this.ethersProvider.getBlockWithTransactions(b);
-        const newTransaction = await this.transactionsModels.create({
-          blockNumber: b,
-          transactions: result?.transactions || [],
+        const { transactions, ...block } =
+          await this.ethersProvider.getBlockWithTransactions(b);
+
+        const newBlock = await this.blockModel.create({
+          ...block,
         });
-        await newTransaction.save();
+        const savedBlock = await newBlock.save();
+
+        await this.transactionModel.insertMany(
+          transactions.map((t) => ({ blockId: savedBlock._id, ...t })),
+        );
+
+        console.log('block and transactions saved!');
       } catch (error) {
         console.log('transaction error:', error);
       }

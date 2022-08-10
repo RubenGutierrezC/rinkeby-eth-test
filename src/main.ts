@@ -12,11 +12,10 @@ async function bootstrap() {
     new FastifyAdapter(),
   );
 
-  const service = app.select(AppModule).get(AppService);
-  service.suscribe();
-
   await app.listen(3000, () => {
     console.log('running on port 3000');
+    const service = app.select(AppModule).get(AppService);
+    service.suscribe();
   });
 }
 bootstrap();
