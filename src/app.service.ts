@@ -38,7 +38,7 @@ export class AppService {
 
   suscribe(): any {
     this.ethersProvider.on('block', async (b) => {
-      console.log('transaction', b);
+      console.log('block', b);
       try {
         const { transactions, ...block } =
           await this.ethersProvider.getBlockWithTransactions(b);
